@@ -2,215 +2,320 @@
 
 class MJ999System {
     constructor() {
+        console.log('MJ999System Constructor Start');
         this.currentUser = null;
         this.players = [];
         this.isAdmin = false;
         this.lineCode = null;
         
+        console.log('MJ999System Constructor: Properties initialized');
         this.init();
+        console.log('MJ999System Constructor: init() called');
     }
 
     async init() {
+        console.log('MJ999 init() Start');
+        
         try {
-            console.log('MJ999 初始化開始...');
-            
-            // 初始化事件監聽器
+            console.log('Step 1: 初始化事件監聽器');
             this.initEventListeners();
-            console.log('事件監聽器初始化完成');
+            console.log('Step 1 Complete: 事件監聽器初始化完成');
             
-            // 檢查是否有已登入用戶
+            console.log('Step 2: 檢查已登入用戶');
             this.checkExistingUser();
-            console.log('用戶狀態檢查完成');
+            console.log('Step 2 Complete: 用戶狀態檢查完成');
             
-            // 立即顯示登入按鈕，避免卡在載入狀態
+            console.log('Step 3: 顯示初始畫面');
             this.showInitialView();
-            console.log('初始畫面顯示完成');
+            console.log('Step 3 Complete: 初始畫面顯示完成');
             
-            // 異步載入資料，不阻塞 UI
-            Promise.all([
-                this.checkLineCallback().catch(err => {
-                    console.error('LINE 登入回調檢查失敗:', err);
-                    // 不拋出錯誤，讓系統繼續運行
-                }),
-                this.loadPlayers().catch(err => {
-                    console.error('玩家資料載入失敗:', err);
-                    // 不拋出錯誤，讓系統繼續運行
-                })
-            ]).catch(error => {
-                console.error('載入資料時發生錯誤:', error);
-            }).finally(() => {
-                console.log('異步載入完成');
-                // 如果有登入用戶，更新報名狀態
-                if (this.currentUser) {
-                    this.updateRegistrationStatus();
-                }
-            });
+            console.log('Step 4: 異步載入資料 (不阻塞)');
+            // 使用非阻塞方式載入資料
+            setTimeout(() => {
+                this.loadDataAsync();
+            }, 100);
             
-            console.log('MJ999 初始化完成');
+            console.log('MJ999 init() Complete: 所有同步步驟完成');
         } catch (error) {
-            console.error('MJ999 初始化過程中發生嚴重錯誤:', error);
-            
-            // 確保即使初始化失敗也要顯示基本 UI
-            try {
-                this.showLoading(false);
-                const loginSection = document.getElementById('login-section');
-                if (loginSection) {
-                    loginSection.classList.remove('hidden');
-                    loginSection.classList.add('visible');
-                }
-                
-                const loginBtn = document.getElementById('line-login-btn');
-                if (loginBtn) {
-                    loginBtn.disabled = false;
-                }
-                
-                this.showMessage('系統初始化部分功能可能受限，但您可以繼續使用', 'info');
-            } catch (uiError) {
-                console.error('UI 恢復也失敗了:', uiError);
+            console.error('MJ999 init() Error:', error);
+            this.handleInitError(error);
+        }
+    }
+
+    loadDataAsync() {
+        console.log('loadDataAsync() Start');
+        
+        Promise.all([
+            this.checkLineCallback().catch(err => {
+                console.error('LINE 登入回調檢查失敗:', err);
+            }),
+            this.loadPlayers().catch(err => {
+                console.error('玩家資料載入失敗:', err);
+            })
+        ]).then(() => {
+            console.log('loadDataAsync(): 所有異步載入完成');
+            if (this.currentUser) {
+                this.updateRegistrationStatus();
+                console.log('loadDataAsync(): 報名狀態已更新');
             }
+        }).catch(error => {
+            console.error('loadDataAsync() Error:', error);
+        });
+    }
+
+    handleInitError(error) {
+        console.error('handleInitError() Start:', error);
+        
+        try {
+            console.log('handleInitError(): 嘗試恢復基本 UI');
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.classList.add('hidden');
+                console.log('handleInitError(): 載入動畫已隱藏');
+            }
+            
+            const loginSection = document.getElementById('login-section');
+            if (loginSection) {
+                loginSection.classList.remove('hidden');
+                loginSection.classList.add('visible');
+                console.log('handleInitError(): 登入區域已顯示');
+            }
+            
+            const loginBtn = document.getElementById('line-login-btn');
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                console.log('handleInitError(): 登入按鈕已啟用');
+            }
+            
+            this.showMessage('系統初始化部分功能可能受限，但您可以繼續使用', 'info');
+            console.log('handleInitError(): UI 恢復完成');
+        } catch (uiError) {
+            console.error('handleInitError(): UI 恢復也失敗:', uiError);
         }
     }
 
     // 檢查 LINE 登入回調
     async checkLineCallback() {
+        console.log('checkLineCallback() Start');
+        
         const userData = sessionStorage.getItem('line_user_data');
+        console.log('checkLineCallback(): userData found:', !!userData);
         
         if (userData) {
+            console.log('checkLineCallback(): 處理用戶資料');
             this.showLoading(true);
+            
             try {
                 const parsedData = JSON.parse(userData);
+                console.log('checkLineCallback(): 用戶資料解析成功:', parsedData.displayName);
+                
                 this.setCurrentUser(parsedData);
                 this.showMessage('登入成功！歡迎 ' + parsedData.displayName, 'success');
+                console.log('checkLineCallback(): 用戶設置完成');
             } catch (error) {
-                console.error('LINE 登入處理失敗:', error);
+                console.error('checkLineCallback(): 用戶資料解析失敗:', error);
                 this.showMessage('登入失敗: ' + error.message, 'error');
             } finally {
                 this.showLoading(false);
-                // 清除 sessionStorage
                 sessionStorage.removeItem('line_user_data');
+                console.log('checkLineCallback(): 清理完成');
             }
+        } else {
+            console.log('checkLineCallback(): 沒有用戶資料需要處理');
         }
     }
 
     // 處理 LINE 登入
     async processLineLogin(code, state) {
-        // 模擬 API 調用 - 實際應用中需要呼叫 LINE API
-        // 這裡先返回模擬資料
+        console.log('processLineLogin() Start');
+        // 模擬 API 調用
         return new Promise((resolve) => {
             setTimeout(() => {
-                resolve({
+                const mockData = {
                     userId: 'U' + Math.random().toString(36).substr(2, 9),
                     displayName: 'LINE 用戶 ' + Math.floor(Math.random() * 1000),
                     pictureUrl: 'https://via.placeholder.com/80'
-                });
+                };
+                console.log('processLineLogin(): 模擬資料生成完成');
+                resolve(mockData);
             }, 1000);
         });
     }
 
     // 初始化事件監聽器
     initEventListeners() {
-        // LINE 登入按鈕
-        document.getElementById('line-login-btn').addEventListener('click', () => {
-            this.redirectToLineLogin();
-        });
+        console.log('initEventListeners() Start');
+        
+        try {
+            // LINE 登入按鈕
+            const loginBtn = document.getElementById('line-login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    console.log('initEventListeners(): 登入按鈕被點擊');
+                    this.redirectToLineLogin();
+                });
+                console.log('initEventListeners(): 登入按鈕事件綁定完成');
+            } else {
+                console.warn('initEventListeners(): 找不到登入按鈕');
+            }
 
-        // 報名按鈕
-        document.querySelectorAll('.btn-register').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const timeSlot = e.target.dataset.time;
-                this.handleRegistration(timeSlot);
+            // 報名按鈕
+            const registerBtns = document.querySelectorAll('.btn-register');
+            console.log('initEventListeners(): 找到報名按鈕數量:', registerBtns.length);
+            
+            registerBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    console.log('initEventListeners(): 報名按鈕被點擊');
+                    const timeSlot = e.target.dataset.time;
+                    this.handleRegistration(timeSlot);
+                });
             });
-        });
+            console.log('initEventListeners(): 報名按鈕事件綁定完成');
 
-        // 管理員按鈕
-        document.getElementById('view-players-btn')?.addEventListener('click', () => {
-            this.togglePlayersList();
-        });
+            // 管理員按鈕
+            const viewPlayersBtn = document.getElementById('view-players-btn');
+            if (viewPlayersBtn) {
+                viewPlayersBtn.addEventListener('click', () => {
+                    console.log('initEventListeners(): 查看玩家按鈕被點擊');
+                    this.togglePlayersList();
+                });
+            }
 
-        document.getElementById('add-player-btn')?.addEventListener('click', () => {
-            this.showAddPlayerDialog();
-        });
+            const addPlayerBtn = document.getElementById('add-player-btn');
+            if (addPlayerBtn) {
+                addPlayerBtn.addEventListener('click', () => {
+                    console.log('initEventListeners(): 新增玩家按鈕被點擊');
+                    this.showAddPlayerDialog();
+                });
+            }
 
-        document.getElementById('match-players-btn')?.addEventListener('click', () => {
-            this.handleMatchPlayers();
-        });
+            const matchPlayersBtn = document.getElementById('match-players-btn');
+            if (matchPlayersBtn) {
+                matchPlayersBtn.addEventListener('click', () => {
+                    console.log('initEventListeners(): 配對按鈕被點擊');
+                    this.handleMatchPlayers();
+                });
+            }
+            
+            console.log('initEventListeners(): 所有事件綁定完成');
+        } catch (error) {
+            console.error('initEventListeners() Error:', error);
+        }
     }
 
     // 重定向到 LINE 登入
     redirectToLineLogin() {
+        console.log('redirectToLineLogin() Start');
         const lineLoginUrl = 'line-login.html';
+        console.log('redirectToLineLogin(): 重定向到', lineLoginUrl);
         window.location.href = lineLoginUrl;
     }
 
     // 設置當前用戶
     setCurrentUser(userData) {
+        console.log('setCurrentUser() Start:', userData.displayName);
         this.currentUser = userData;
         localStorage.setItem('currentUser', JSON.stringify(userData));
         this.updateUserDisplay();
         this.showRegistrationSection();
+        console.log('setCurrentUser(): 用戶設置完成');
     }
 
     // 檢查已存在的用戶
     checkExistingUser() {
+        console.log('checkExistingUser() Start');
+        
         const savedUser = localStorage.getItem('currentUser');
+        console.log('checkExistingUser(): 找到儲存用戶:', !!savedUser);
+        
         if (savedUser) {
             try {
                 this.currentUser = JSON.parse(savedUser);
+                console.log('checkExistingUser(): 用戶資料解析成功:', this.currentUser.displayName);
                 this.updateUserDisplay();
                 this.showRegistrationSection();
+                console.log('checkExistingUser(): 已登入用戶設置完成');
             } catch (error) {
-                console.error('載入用戶資料失敗:', error);
+                console.error('checkExistingUser(): 載入用戶資料失敗:', error);
                 localStorage.removeItem('currentUser');
             }
+        } else {
+            console.log('checkExistingUser(): 沒有已儲存的用戶');
         }
     }
 
     // 更新用戶顯示
     updateUserDisplay() {
-        if (!this.currentUser) return;
-
-        document.getElementById('user-name').textContent = this.currentUser.displayName;
-        document.getElementById('user-id').textContent = 'ID: ' + this.currentUser.userId;
-        document.getElementById('user-avatar').src = this.currentUser.pictureUrl || 'https://via.placeholder.com/80';
+        console.log('updateUserDisplay() Start');
         
-        // 檢查是否為管理員
-        this.checkAdminStatus();
+        if (!this.currentUser) {
+            console.log('updateUserDisplay(): 沒有當前用戶');
+            return;
+        }
+
+        try {
+            const userName = document.getElementById('user-name');
+            if (userName) {
+                userName.textContent = this.currentUser.displayName;
+            }
+
+            const userId = document.getElementById('user-id');
+            if (userId) {
+                userId.textContent = 'ID: ' + this.currentUser.userId;
+            }
+
+            const userAvatar = document.getElementById('user-avatar');
+            if (userAvatar) {
+                userAvatar.src = this.currentUser.pictureUrl || 'https://via.placeholder.com/80';
+            }
+            
+            console.log('updateUserDisplay(): 用戶資訊顯示完成');
+            
+            // 檢查是否為管理員
+            this.checkAdminStatus();
+        } catch (error) {
+            console.error('updateUserDisplay() Error:', error);
+        }
     }
 
     // 檢查管理員狀態
     checkAdminStatus() {
-        // 簡單的管理員檢查邏輯
-        const adminIds = ['admin123', 'manager456']; // 實際應用中應該從後端獲取
+        console.log('checkAdminStatus() Start');
+        
+        const adminIds = ['admin123', 'manager456'];
         this.isAdmin = adminIds.includes(this.currentUser.userId);
+        console.log('checkAdminStatus(): 用戶是否為管理員:', this.isAdmin);
         
         if (this.isAdmin) {
             this.showAdminSection();
+            console.log('checkAdminStatus(): 管理員區域已顯示');
         }
     }
 
     // 顯示初始畫面
     showInitialView() {
+        console.log('showInitialView() Start');
+        
         try {
-            console.log('顯示初始畫面開始...');
-            
             // 確保載入動畫隱藏
             this.showLoading(false);
+            console.log('showInitialView(): 載入動畫已隱藏');
             
             // 確保登入按鈕可用
             const loginBtn = document.getElementById('line-login-btn');
             if (loginBtn) {
                 loginBtn.disabled = false;
-                console.log('登入按鈕已啟用');
+                console.log('showInitialView(): 登入按鈕已啟用');
             } else {
-                console.warn('找不到登入按鈕元素');
+                console.warn('showInitialView(): 找不到登入按鈕元素');
             }
             
             if (this.currentUser) {
-                console.log('顯示已登入用戶畫面');
+                console.log('showInitialView(): 顯示已登入用戶畫面');
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('user-section').classList.remove('hidden');
             } else {
-                console.log('顯示登入畫面');
+                console.log('showInitialView(): 顯示登入畫面');
                 document.getElementById('login-section').classList.remove('hidden');
                 document.getElementById('user-section').classList.add('hidden');
             }
@@ -221,67 +326,91 @@ class MJ999System {
                     document.querySelectorAll('.section:not(.hidden)').forEach(section => {
                         section.classList.add('visible');
                     });
-                    console.log('動畫效果添加完成');
+                    console.log('showInitialView(): 動畫效果添加完成');
                 } catch (animError) {
-                    console.error('添加動畫效果失敗:', animError);
+                    console.error('showInitialView(): 添加動畫效果失敗:', animError);
                 }
             }, 100);
             
-            console.log('初始畫面顯示完成');
+            console.log('showInitialView(): 初始畫面顯示完成');
         } catch (error) {
-            console.error('顯示初始畫面失敗:', error);
+            console.error('showInitialView() Error:', error);
+            this.forceShowLogin();
+        }
+    }
+
+    // 強制顯示登入介面
+    forceShowLogin() {
+        console.log('forceShowLogin() Start');
+        
+        try {
+            const loading = document.getElementById('loading');
+            if (loading) loading.classList.add('hidden');
             
-            // 強制顯示登入區域
-            try {
-                const loading = document.getElementById('loading');
-                if (loading) loading.classList.add('hidden');
-                
-                const loginSection = document.getElementById('login-section');
-                if (loginSection) {
-                    loginSection.classList.remove('hidden');
-                    loginSection.classList.add('visible');
-                }
-                
-                const userSection = document.getElementById('user-section');
-                if (userSection) {
-                    userSection.classList.add('hidden');
-                }
-                
-                const loginBtn = document.getElementById('line-login-btn');
-                if (loginBtn) {
-                    loginBtn.disabled = false;
-                }
-            } catch (forceError) {
-                console.error('強制恢復UI也失敗:', forceError);
+            const loginSection = document.getElementById('login-section');
+            if (loginSection) {
+                loginSection.classList.remove('hidden');
+                loginSection.classList.add('visible');
             }
+            
+            const userSection = document.getElementById('user-section');
+            if (userSection) {
+                userSection.classList.add('hidden');
+            }
+            
+            const loginBtn = document.getElementById('line-login-btn');
+            if (loginBtn) {
+                loginBtn.disabled = false;
+            }
+            
+            console.log('forceShowLogin(): 強制顯示完成');
+        } catch (error) {
+            console.error('forceShowLogin() Error:', error);
         }
     }
 
     // 顯示報名區域
     showRegistrationSection() {
-        document.getElementById('login-section').classList.add('hidden');
-        document.getElementById('user-section').classList.remove('hidden');
-        document.getElementById('registration-section').classList.remove('hidden');
+        console.log('showRegistrationSection() Start');
         
-        // 更新報名狀態
-        this.updateRegistrationStatus();
-        
-        // 添加動畫
-        setTimeout(() => {
-            document.getElementById('registration-section').classList.add('visible');
-        }, 100);
+        try {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('user-section').classList.remove('hidden');
+            document.getElementById('registration-section').classList.remove('hidden');
+            
+            // 更新報名狀態
+            this.updateRegistrationStatus();
+            
+            // 添加動畫
+            setTimeout(() => {
+                document.getElementById('registration-section').classList.add('visible');
+            }, 100);
+            
+            console.log('showRegistrationSection(): 報名區域顯示完成');
+        } catch (error) {
+            console.error('showRegistrationSection() Error:', error);
+        }
     }
 
     // 顯示管理員區域
     showAdminSection() {
-        document.getElementById('admin-section').classList.remove('hidden');
-        setTimeout(() => {
-            document.getElementById('admin-section').classList.add('visible');
-        }, 100);
+        console.log('showAdminSection() Start');
+        
+        try {
+            document.getElementById('admin-section').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('admin-section').classList.add('visible');
+            }, 100);
+            console.log('showAdminSection(): 管理員區域顯示完成');
+        } catch (error) {
+            console.error('showAdminSection() Error:', error);
+        }
     }
 
     // 處理報名
     async handleRegistration(timeSlot) {
+        console.log('handleRegistration() Start:', timeSlot);
+        
         if (!this.currentUser) {
             this.showMessage('請先登入', 'error');
             return;
@@ -316,8 +445,9 @@ class MJ999System {
             this.showMessage(`成功報名 ${timeSlot} 時段`, 'success');
             this.updateRegistrationStatus();
             
+            console.log('handleRegistration(): 報名完成');
         } catch (error) {
-            console.error('報名失敗:', error);
+            console.error('handleRegistration() Error:', error);
             this.showMessage('報名失敗: ' + error.message, 'error');
         } finally {
             this.showLoading(false);
@@ -326,112 +456,150 @@ class MJ999System {
 
     // 更新報名狀態
     updateRegistrationStatus() {
-        if (!this.currentUser) return;
+        console.log('updateRegistrationStatus() Start');
+        
+        if (!this.currentUser) {
+            console.log('updateRegistrationStatus(): 沒有當前用戶');
+            return;
+        }
 
-        document.querySelectorAll('.time-slot').forEach(slot => {
-            const timeSlot = slot.dataset.time;
-            const isRegistered = this.players.some(p => 
-                p.userId === this.currentUser.userId && p.timeSlot === timeSlot
-            );
+        try {
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                const timeSlot = slot.dataset.time;
+                const isRegistered = this.players.some(p => 
+                    p.userId === this.currentUser.userId && p.timeSlot === timeSlot
+                );
+                
+                const btn = slot.querySelector('.btn-register');
+                const statusIndicator = slot.querySelector('.status-indicator');
+                
+                if (isRegistered) {
+                    btn.textContent = '已報名';
+                    btn.disabled = true;
+                    statusIndicator.textContent = '已報名';
+                    statusIndicator.className = 'status-indicator registered';
+                } else {
+                    btn.textContent = '報名';
+                    btn.disabled = false;
+                    statusIndicator.textContent = '可報名';
+                    statusIndicator.className = 'status-indicator available';
+                }
+            });
             
-            const btn = slot.querySelector('.btn-register');
-            const statusIndicator = slot.querySelector('.status-indicator');
-            
-            if (isRegistered) {
-                btn.textContent = '已報名';
-                btn.disabled = true;
-                statusIndicator.textContent = '已報名';
-                statusIndicator.className = 'status-indicator registered';
-            } else {
-                btn.textContent = '報名';
-                btn.disabled = false;
-                statusIndicator.textContent = '可報名';
-                statusIndicator.className = 'status-indicator available';
-            }
-        });
+            console.log('updateRegistrationStatus(): 報名狀態更新完成');
+        } catch (error) {
+            console.error('updateRegistrationStatus() Error:', error);
+        }
     }
 
     // 載入玩家資料
     async loadPlayers() {
+        console.log('loadPlayers() Start');
+        
         try {
             const savedPlayers = localStorage.getItem('players');
             if (savedPlayers) {
                 this.players = JSON.parse(savedPlayers);
+                console.log('loadPlayers(): 載入玩家數量:', this.players.length);
+            } else {
+                console.log('loadPlayers(): 沒有儲存的玩家資料');
             }
         } catch (error) {
-            console.error('載入玩家資料失敗:', error);
+            console.error('loadPlayers() Error:', error);
             this.players = [];
         }
     }
 
     // 儲存玩家資料
     async savePlayers() {
+        console.log('savePlayers() Start');
+        
         try {
             localStorage.setItem('players', JSON.stringify(this.players));
+            console.log('savePlayers(): 玩家資料儲存完成');
         } catch (error) {
-            console.error('儲存玩家資料失敗:', error);
+            console.error('savePlayers() Error:', error);
             throw error;
         }
     }
 
     // 切換玩家清單顯示
     togglePlayersList() {
-        const playersList = document.getElementById('players-list');
-        playersList.classList.toggle('hidden');
+        console.log('togglePlayersList() Start');
         
-        if (!playersList.classList.contains('hidden')) {
-            this.displayPlayers();
+        try {
+            const playersList = document.getElementById('players-list');
+            playersList.classList.toggle('hidden');
+            
+            if (!playersList.classList.contains('hidden')) {
+                this.displayPlayers();
+            }
+            
+            console.log('togglePlayersList(): 玩家清單切換完成');
+        } catch (error) {
+            console.error('togglePlayersList() Error:', error);
         }
     }
 
     // 顯示玩家清單
     displayPlayers() {
-        const container = document.getElementById('players-container');
-        container.innerHTML = '';
+        console.log('displayPlayers() Start');
+        
+        try {
+            const container = document.getElementById('players-container');
+            container.innerHTML = '';
 
-        if (this.players.length === 0) {
-            container.innerHTML = '<p style="text-align: center; opacity: 0.7;">暫無報名玩家</p>';
-            return;
-        }
-
-        // 按時段分組
-        const groupedPlayers = this.players.reduce((groups, player) => {
-            if (!groups[player.timeSlot]) {
-                groups[player.timeSlot] = [];
+            if (this.players.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7;">暫無報名玩家</p>';
+                console.log('displayPlayers(): 沒有玩家需要顯示');
+                return;
             }
-            groups[player.timeSlot].push(player);
-            return groups;
-        }, {});
 
-        // 顯示各時段的玩家
-        Object.keys(groupedPlayers).forEach(timeSlot => {
-            const groupDiv = document.createElement('div');
-            groupDiv.innerHTML = `<h4 style="color: #FFD700; margin: 20px 0 10px 0;">${timeSlot} 時段 (${groupedPlayers[timeSlot].length}人)</h4>`;
-            
-            groupedPlayers[timeSlot].forEach(player => {
-                const playerDiv = document.createElement('div');
-                playerDiv.className = 'player-item';
-                playerDiv.innerHTML = `
-                    <div class="player-info">
-                        <img src="${player.pictureUrl || 'https://via.placeholder.com/40'}" alt="${player.displayName}" class="player-avatar">
-                        <div class="player-details">
-                            <h4>${player.displayName}</h4>
-                            <p>ID: ${player.userId} | 報名時間: ${new Date(player.registrationTime).toLocaleString('zh-TW')}</p>
+            // 按時段分組
+            const groupedPlayers = this.players.reduce((groups, player) => {
+                if (!groups[player.timeSlot]) {
+                    groups[player.timeSlot] = [];
+                }
+                groups[player.timeSlot].push(player);
+                return groups;
+            }, {});
+
+            // 顯示各時段的玩家
+            Object.keys(groupedPlayers).forEach(timeSlot => {
+                const groupDiv = document.createElement('div');
+                groupDiv.innerHTML = `<h4 style="color: #FFD700; margin: 20px 0 10px 0;">${timeSlot} 時段 (${groupedPlayers[timeSlot].length}人)</h4>`;
+                
+                groupedPlayers[timeSlot].forEach(player => {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'player-item';
+                    playerDiv.innerHTML = `
+                        <div class="player-info">
+                            <img src="${player.pictureUrl || 'https://via.placeholder.com/40'}" alt="${player.displayName}" class="player-avatar">
+                            <div class="player-details">
+                                <h4>${player.displayName}</h4>
+                                <p>ID: ${player.userId} | 報名時間: ${new Date(player.registrationTime).toLocaleString('zh-TW')}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="player-actions">
-                        <button class="btn btn-remove" onclick="mj999.removePlayer('${player.id}')">移除</button>
-                    </div>
-                `;
-                groupDiv.appendChild(playerDiv);
+                        <div class="player-actions">
+                            <button class="btn btn-remove" onclick="mj999.removePlayer('${player.id}')">移除</button>
+                        </div>
+                    `;
+                    groupDiv.appendChild(playerDiv);
+                });
+                
+                container.appendChild(groupDiv);
             });
             
-            container.appendChild(groupDiv);
-        });
+            console.log('displayPlayers(): 玩家清單顯示完成');
+        } catch (error) {
+            console.error('displayPlayers() Error:', error);
+        }
     }
 
     // 移除玩家
     async removePlayer(playerId) {
+        console.log('removePlayer() Start:', playerId);
+        
         if (!confirm('確定要移除此玩家嗎？')) return;
 
         this.showLoading(true);
@@ -446,8 +614,10 @@ class MJ999System {
             if (this.currentUser) {
                 this.updateRegistrationStatus();
             }
+            
+            console.log('removePlayer(): 玩家移除完成');
         } catch (error) {
-            console.error('移除玩家失敗:', error);
+            console.error('removePlayer() Error:', error);
             this.showMessage('移除失敗: ' + error.message, 'error');
         } finally {
             this.showLoading(false);
@@ -456,6 +626,8 @@ class MJ999System {
 
     // 顯示新增玩家對話框
     showAddPlayerDialog() {
+        console.log('showAddPlayerDialog() Start');
+        
         const name = prompt('請輸入玩家名稱:');
         if (!name) return;
 
@@ -473,6 +645,8 @@ class MJ999System {
 
     // 手動新增玩家
     async addManualPlayer(name, userId, timeSlot) {
+        console.log('addManualPlayer() Start:', name, userId, timeSlot);
+        
         this.showLoading(true);
         
         try {
@@ -490,8 +664,10 @@ class MJ999System {
             
             this.showMessage('玩家新增成功', 'success');
             this.displayPlayers();
+            
+            console.log('addManualPlayer(): 玩家新增完成');
         } catch (error) {
-            console.error('新增玩家失敗:', error);
+            console.error('addManualPlayer() Error:', error);
             this.showMessage('新增失敗: ' + error.message, 'error');
         } finally {
             this.showLoading(false);
@@ -500,6 +676,8 @@ class MJ999System {
 
     // 處理配對
     async handleMatchPlayers() {
+        console.log('handleMatchPlayers() Start');
+        
         this.showLoading(true);
         
         try {
@@ -538,8 +716,9 @@ class MJ999System {
                 this.showMessage('人數不足，無法配對', 'info');
             }
             
+            console.log('handleMatchPlayers(): 配對處理完成');
         } catch (error) {
-            console.error('配對失敗:', error);
+            console.error('handleMatchPlayers() Error:', error);
             this.showMessage('配對失敗: ' + error.message, 'error');
         } finally {
             this.showLoading(false);
@@ -548,10 +727,11 @@ class MJ999System {
 
     // 發送 LINE Notify 通知（模擬）
     async sendLineNotify(matchResults) {
-        // 實際應用中需要呼叫 LINE Notify API
+        console.log('sendLineNotify() Start');
+        
         return new Promise((resolve) => {
             setTimeout(() => {
-                console.log('LINE Notify 通知已發送:', matchResults);
+                console.log('sendLineNotify(): LINE Notify 通知已發送:', matchResults);
                 resolve();
             }, 1000);
         });
@@ -559,105 +739,123 @@ class MJ999System {
 
     // 顯示載入動畫
     showLoading(show) {
-        const loading = document.getElementById('loading');
-        if (show) {
-            loading.classList.remove('hidden');
-        } else {
-            loading.classList.add('hidden');
+        console.log('showLoading() Start:', show);
+        
+        try {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.remove('hidden');
+            } else {
+                loading.classList.add('hidden');
+            }
+            console.log('showLoading(): 載入狀態設置完成');
+        } catch (error) {
+            console.error('showLoading() Error:', error);
         }
     }
 
     // 顯示訊息
     showMessage(text, type = 'info') {
-        const message = document.getElementById('message');
-        message.textContent = text;
-        message.className = `message ${type}`;
-        message.classList.remove('hidden');
+        console.log('showMessage() Start:', text, type);
+        
+        try {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type}`;
+            message.classList.remove('hidden');
 
-        // 3秒後自動隱藏
-        setTimeout(() => {
-            message.classList.add('hidden');
-        }, 3000);
+            // 3秒後自動隱藏
+            setTimeout(() => {
+                message.classList.add('hidden');
+            }, 3000);
+            
+            console.log('showMessage(): 訊息顯示完成');
+        } catch (error) {
+            console.error('showMessage() Error:', error);
+        }
     }
 }
 
 // 初始化系統
+console.log('System Initialization Start');
+
 let mj999;
-let forceLoadTimeout;
 
-// 強制載入機制 - 3秒後強制隱藏載入動畫
-forceLoadTimeout = setTimeout(() => {
-    console.warn('強制載入機制觸發：3秒內未完成初始化，強制顯示UI');
-    const loading = document.getElementById('loading');
-    if (loading && !loading.classList.contains('hidden')) {
-        loading.classList.add('hidden');
-    }
-    
-    // 確保登入按鈕可用
-    const loginBtn = document.getElementById('line-login-btn');
-    if (loginBtn && loginBtn.disabled) {
-        loginBtn.disabled = false;
-        console.log('登入按鈕已強制啟用');
-    }
-    
-    // 確保登入區域顯示
-    const loginSection = document.getElementById('login-section');
-    if (loginSection && loginSection.classList.contains('hidden')) {
-        loginSection.classList.remove('hidden');
-        loginSection.classList.add('visible');
-        console.log('登入區域已強制顯示');
-    }
-}, 3000);
-
+// DOM 載入完成後初始化
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded Event Fired');
+    
     try {
-        console.log('MJ999 系統初始化開始...');
+        console.log('Creating MJ999System instance...');
         mj999 = new MJ999System();
-        
-        // 清除強制載入超時
-        clearTimeout(forceLoadTimeout);
-        console.log('MJ999 系統初始化完成');
+        console.log('MJ999System instance created successfully');
     } catch (error) {
-        console.error('MJ999 系統初始化失敗:', error);
+        console.error('MJ999System creation failed:', error);
         
         // 即使初始化失敗也要確保 UI 可用
-        const loading = document.getElementById('loading');
-        if (loading) {
-            loading.classList.add('hidden');
-        }
-        
-        const loginBtn = document.getElementById('line-login-btn');
-        if (loginBtn) {
-            loginBtn.disabled = false;
-        }
-        
-        const loginSection = document.getElementById('login-section');
-        if (loginSection) {
-            loginSection.classList.remove('hidden');
-            loginSection.classList.add('visible');
-        }
-        
-        // 顯示錯誤訊息但不阻止操作
-        const message = document.getElementById('message');
-        if (message) {
-            message.textContent = '系統初始化部分功能可能受限，但您可以繼續使用';
-            message.className = 'message info';
-            message.classList.remove('hidden');
+        try {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.classList.add('hidden');
+            }
+            
+            const loginBtn = document.getElementById('line-login-btn');
+            if (loginBtn) {
+                loginBtn.disabled = false;
+            }
+            
+            const loginSection = document.getElementById('login-section');
+            if (loginSection) {
+                loginSection.classList.remove('hidden');
+                loginSection.classList.add('visible');
+            }
+            
+            const message = document.getElementById('message');
+            if (message) {
+                message.textContent = '系統初始化部分功能可能受限，但您可以繼續使用';
+                message.className = 'message info';
+                message.classList.remove('hidden');
+            }
+            
+            console.log('Fallback UI recovery completed');
+        } catch (fallbackError) {
+            console.error('Fallback UI recovery failed:', fallbackError);
         }
     }
 });
 
-// 強行破解載入圈圈的定時炸彈
+console.log('System Initialization Script End');
+
+// 強行破解載入圈圈的定時炸彈 - 最高優先權
+console.log('Setting up 3-second timeout bomb...');
 setTimeout(() => {
-    const loading = document.getElementById('loading');
-    const loginBtn = document.getElementById('line-login-btn');
-    const loginSection = document.getElementById('login-section');
+    console.log('🚀 TIMEOUT BOMB DETONATED! 強制解除載入狀態');
     
-    if (loading) loading.classList.add('hidden');
-    if (loginBtn) loginBtn.disabled = false;
-    if (loginSection) {
-        loginSection.classList.remove('hidden');
-        loginSection.classList.add('visible');
+    try {
+        const loading = document.getElementById('loading');
+        const loginBtn = document.getElementById('line-login-btn');
+        const loginSection = document.getElementById('login-section');
+        
+        if (loading) {
+            loading.classList.add('hidden');
+            console.log('💣 載入動畫已強制隱藏');
+        }
+        
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            console.log('💣 登入按鈕已強制啟用');
+        }
+        
+        if (loginSection) {
+            loginSection.classList.remove('hidden');
+            loginSection.classList.add('visible');
+            console.log('💣 登入區域已強制顯示');
+        }
+        
+        console.log('💣💣💣 強制解除載入狀態完成！用戶應該能看到登入按鈕了！');
+    } catch (bombError) {
+        console.error('💣 BOMB ERROR:', bombError);
     }
-    console.log("已執行強制解除載入狀態");
 }, 3000); // 3秒後沒反應就直接開門
+
+console.log('Script End - 定時炸彈已設定，3秒後引爆');
