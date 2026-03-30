@@ -360,6 +360,13 @@ body {
     z-index: 9999;
 }
 
+/* 修正：確保 hidden 類別能正確隱藏載入動畫 */
+.loading.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
 .spinner {
     width: 50px;
     height: 50px;
