@@ -646,6 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
 // 強行破解載入圈圈的定時炸彈
 setTimeout(() => {
     const loading = document.getElementById('loading');
