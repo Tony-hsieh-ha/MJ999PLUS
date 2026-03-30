@@ -11,27 +11,64 @@ class MJ999System {
     }
 
     async init() {
-        // 初始化事件監聽器
-        this.initEventListeners();
-        
-        // 檢查是否有已登入用戶
-        this.checkExistingUser();
-        
-        // 立即顯示登入按鈕，避免卡在載入狀態
-        this.showInitialView();
-        
-        // 異步載入資料，不阻塞 UI
-        Promise.all([
-            this.checkLineCallback(),
-            this.loadPlayers()
-        ]).catch(error => {
-            console.error('載入資料時發生錯誤:', error);
-        }).finally(() => {
-            // 如果有登入用戶，更新報名狀態
-            if (this.currentUser) {
-                this.updateRegistrationStatus();
+        try {
+            console.log('MJ999 初始化開始...');
+            
+            // 初始化事件監聽器
+            this.initEventListeners();
+            console.log('事件監聽器初始化完成');
+            
+            // 檢查是否有已登入用戶
+            this.checkExistingUser();
+            console.log('用戶狀態檢查完成');
+            
+            // 立即顯示登入按鈕，避免卡在載入狀態
+            this.showInitialView();
+            console.log('初始畫面顯示完成');
+            
+            // 異步載入資料，不阻塞 UI
+            Promise.all([
+                this.checkLineCallback().catch(err => {
+                    console.error('LINE 登入回調檢查失敗:', err);
+                    // 不拋出錯誤，讓系統繼續運行
+                }),
+                this.loadPlayers().catch(err => {
+                    console.error('玩家資料載入失敗:', err);
+                    // 不拋出錯誤，讓系統繼續運行
+                })
+            ]).catch(error => {
+                console.error('載入資料時發生錯誤:', error);
+            }).finally(() => {
+                console.log('異步載入完成');
+                // 如果有登入用戶，更新報名狀態
+                if (this.currentUser) {
+                    this.updateRegistrationStatus();
+                }
+            });
+            
+            console.log('MJ999 初始化完成');
+        } catch (error) {
+            console.error('MJ999 初始化過程中發生嚴重錯誤:', error);
+            
+            // 確保即使初始化失敗也要顯示基本 UI
+            try {
+                this.showLoading(false);
+                const loginSection = document.getElementById('login-section');
+                if (loginSection) {
+                    loginSection.classList.remove('hidden');
+                    loginSection.classList.add('visible');
+                }
+                
+                const loginBtn = document.getElementById('line-login-btn');
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                }
+                
+                this.showMessage('系統初始化部分功能可能受限，但您可以繼續使用', 'info');
+            } catch (uiError) {
+                console.error('UI 恢復也失敗了:', uiError);
             }
-        });
+        }
     }
 
     // 檢查 LINE 登入回調
@@ -153,23 +190,71 @@ class MJ999System {
 
     // 顯示初始畫面
     showInitialView() {
-        // 確保載入動畫隱藏
-        this.showLoading(false);
-        
-        if (this.currentUser) {
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('user-section').classList.remove('hidden');
-        } else {
-            document.getElementById('login-section').classList.remove('hidden');
-            document.getElementById('user-section').classList.add('hidden');
+        try {
+            console.log('顯示初始畫面開始...');
+            
+            // 確保載入動畫隱藏
+            this.showLoading(false);
+            
+            // 確保登入按鈕可用
+            const loginBtn = document.getElementById('line-login-btn');
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                console.log('登入按鈕已啟用');
+            } else {
+                console.warn('找不到登入按鈕元素');
+            }
+            
+            if (this.currentUser) {
+                console.log('顯示已登入用戶畫面');
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('user-section').classList.remove('hidden');
+            } else {
+                console.log('顯示登入畫面');
+                document.getElementById('login-section').classList.remove('hidden');
+                document.getElementById('user-section').classList.add('hidden');
+            }
+            
+            // 添加動畫效果
+            setTimeout(() => {
+                try {
+                    document.querySelectorAll('.section:not(.hidden)').forEach(section => {
+                        section.classList.add('visible');
+                    });
+                    console.log('動畫效果添加完成');
+                } catch (animError) {
+                    console.error('添加動畫效果失敗:', animError);
+                }
+            }, 100);
+            
+            console.log('初始畫面顯示完成');
+        } catch (error) {
+            console.error('顯示初始畫面失敗:', error);
+            
+            // 強制顯示登入區域
+            try {
+                const loading = document.getElementById('loading');
+                if (loading) loading.classList.add('hidden');
+                
+                const loginSection = document.getElementById('login-section');
+                if (loginSection) {
+                    loginSection.classList.remove('hidden');
+                    loginSection.classList.add('visible');
+                }
+                
+                const userSection = document.getElementById('user-section');
+                if (userSection) {
+                    userSection.classList.add('hidden');
+                }
+                
+                const loginBtn = document.getElementById('line-login-btn');
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                }
+            } catch (forceError) {
+                console.error('強制恢復UI也失敗:', forceError);
+            }
         }
-        
-        // 添加動畫效果
-        setTimeout(() => {
-            document.querySelectorAll('.section:not(.hidden)').forEach(section => {
-                section.classList.add('visible');
-            });
-        }, 100);
     }
 
     // 顯示報名區域
@@ -498,6 +583,66 @@ class MJ999System {
 
 // 初始化系統
 let mj999;
+let forceLoadTimeout;
+
+// 強制載入機制 - 3秒後強制隱藏載入動畫
+forceLoadTimeout = setTimeout(() => {
+    console.warn('強制載入機制觸發：3秒內未完成初始化，強制顯示UI');
+    const loading = document.getElementById('loading');
+    if (loading && !loading.classList.contains('hidden')) {
+        loading.classList.add('hidden');
+    }
+    
+    // 確保登入按鈕可用
+    const loginBtn = document.getElementById('line-login-btn');
+    if (loginBtn && loginBtn.disabled) {
+        loginBtn.disabled = false;
+        console.log('登入按鈕已強制啟用');
+    }
+    
+    // 確保登入區域顯示
+    const loginSection = document.getElementById('login-section');
+    if (loginSection && loginSection.classList.contains('hidden')) {
+        loginSection.classList.remove('hidden');
+        loginSection.classList.add('visible');
+        console.log('登入區域已強制顯示');
+    }
+}, 3000);
+
 document.addEventListener('DOMContentLoaded', () => {
-    mj999 = new MJ999System();
+    try {
+        console.log('MJ999 系統初始化開始...');
+        mj999 = new MJ999System();
+        
+        // 清除強制載入超時
+        clearTimeout(forceLoadTimeout);
+        console.log('MJ999 系統初始化完成');
+    } catch (error) {
+        console.error('MJ999 系統初始化失敗:', error);
+        
+        // 即使初始化失敗也要確保 UI 可用
+        const loading = document.getElementById('loading');
+        if (loading) {
+            loading.classList.add('hidden');
+        }
+        
+        const loginBtn = document.getElementById('line-login-btn');
+        if (loginBtn) {
+            loginBtn.disabled = false;
+        }
+        
+        const loginSection = document.getElementById('login-section');
+        if (loginSection) {
+            loginSection.classList.remove('hidden');
+            loginSection.classList.add('visible');
+        }
+        
+        // 顯示錯誤訊息但不阻止操作
+        const message = document.getElementById('message');
+        if (message) {
+            message.textContent = '系統初始化部分功能可能受限，但您可以繼續使用';
+            message.className = 'message info';
+            message.classList.remove('hidden');
+        }
+    }
 });
