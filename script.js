@@ -646,3 +646,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+// 強行破解載入圈圈的定時炸彈
+setTimeout(() => {
+    const loading = document.getElementById('loading');
+    const loginBtn = document.getElementById('line-login-btn');
+    const loginSection = document.getElementById('login-section');
+    
+    if (loading) loading.classList.add('hidden');
+    if (loginBtn) loginBtn.disabled = false;
+    if (loginSection) {
+        loginSection.classList.remove('hidden');
+        loginSection.classList.add('visible');
+    }
+    console.log("已執行強制解除載入狀態");
+}, 3000); // 3秒後沒反應就直接開門
