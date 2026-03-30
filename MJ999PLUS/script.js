@@ -11,43 +11,46 @@ class MJ999System {
     }
 
     async init() {
-        // 檢查是否有 LINE 登入 code
-        await this.checkLineCallback();
-        
         // 初始化事件監聽器
         this.initEventListeners();
         
         // 檢查是否有已登入用戶
         this.checkExistingUser();
         
-        // 載入玩家資料
-        await this.loadPlayers();
-        
-        // 顯示初始畫面
+        // 立即顯示登入按鈕，避免卡在載入狀態
         this.showInitialView();
+        
+        // 異步載入資料，不阻塞 UI
+        Promise.all([
+            this.checkLineCallback(),
+            this.loadPlayers()
+        ]).catch(error => {
+            console.error('載入資料時發生錯誤:', error);
+        }).finally(() => {
+            // 如果有登入用戶，更新報名狀態
+            if (this.currentUser) {
+                this.updateRegistrationStatus();
+            }
+        });
     }
 
     // 檢查 LINE 登入回調
     async checkLineCallback() {
-        const code = sessionStorage.getItem('line_code');
-        const state = sessionStorage.getItem('line_state');
+        const userData = sessionStorage.getItem('line_user_data');
         
-        if (code) {
+        if (userData) {
             this.showLoading(true);
             try {
-                const userData = await this.processLineLogin(code, state);
-                if (userData) {
-                    this.setCurrentUser(userData);
-                    this.showMessage('登入成功！歡迎 ' + userData.displayName, 'success');
-                }
+                const parsedData = JSON.parse(userData);
+                this.setCurrentUser(parsedData);
+                this.showMessage('登入成功！歡迎 ' + parsedData.displayName, 'success');
             } catch (error) {
                 console.error('LINE 登入處理失敗:', error);
                 this.showMessage('登入失敗: ' + error.message, 'error');
             } finally {
                 this.showLoading(false);
                 // 清除 sessionStorage
-                sessionStorage.removeItem('line_code');
-                sessionStorage.removeItem('line_state');
+                sessionStorage.removeItem('line_user_data');
             }
         }
     }
@@ -150,6 +153,9 @@ class MJ999System {
 
     // 顯示初始畫面
     showInitialView() {
+        // 確保載入動畫隱藏
+        this.showLoading(false);
+        
         if (this.currentUser) {
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('user-section').classList.remove('hidden');

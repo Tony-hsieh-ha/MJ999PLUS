@@ -74,7 +74,7 @@
     <script>
         // LINE Login 配置 - 避免手動 URL 編碼
         const LINE_LOGIN_CONFIG = {
-            channelId: '2006057786', // 請替換為您的 LINE Channel ID
+            channelId: '2004473747', // 請替換為您的 LINE Channel ID
             redirectUri: window.location.origin + '/', // 動態獲取，避免編碼問題
             state: 'mj999_' + Date.now(), // 防止 CSRF 攻擊
             scope: 'profile openid',
@@ -108,11 +108,18 @@
                     throw new Error('State 驗證失敗，可能為安全攻擊');
                 }
 
-                // 如果有 code 參數，處理登入
+                // 如果有 code 參數，使用模擬登入邏輯
                 if (params.code) {
-                    // 將 code 傳遞給主頁面
-                    sessionStorage.setItem('line_code', params.code);
-                    sessionStorage.setItem('line_state', params.state);
+                    // 模擬用戶資料 - 實際應用中應該在後端處理
+                    const mockUserData = {
+                        userId: 'U' + Math.random().toString(36).substr(2, 9),
+                        displayName: 'LINE 用戶 ' + Math.floor(Math.random() * 1000),
+                        pictureUrl: 'https://via.placeholder.com/80',
+                        email: 'user' + Math.floor(Math.random() * 1000) + '@line.me'
+                    };
+                    
+                    // 將用戶資料傳遞給主頁面
+                    sessionStorage.setItem('line_user_data', JSON.stringify(mockUserData));
                     
                     // 重定向到主頁面
                     window.location.href = LINE_LOGIN_CONFIG.redirectUri;
