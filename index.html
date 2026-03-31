@@ -29,13 +29,23 @@
             <!-- 玩家資訊區域 -->
             <div id="user-section" class="section hidden">
                 <div class="user-card">
-                    <div class="user-info">
-                        <div class="avatar">
-                            <img id="user-avatar" src="https://via.placeholder.com/80" alt="用戶頭像">
+                    <div class="user-profile">
+                        <div class="user-avatar-section">
+                            <div class="avatar-large">
+                                <img id="user-avatar" src="https://via.placeholder.com/100" alt="用戶頭像">
+                                <div class="status-indicator online"></div>
+                            </div>
                         </div>
-                        <div class="user-details">
-                            <h3 id="user-name">載入中...</h3>
+                        <div class="user-info-section">
+                            <div class="user-header">
+                                <h3 id="user-name">載入中...</h3>
+                                <span class="user-status">🟢 在線</span>
+                            </div>
                             <p id="user-id">ID: 載入中...</p>
+                            <div class="user-stats">
+                                <span class="stat-item">👥 <span id="user-friends">0</span> 好友</span>
+                                <span class="stat-item">📝 <span id="user-status-msg">載入中...</span></span>
+                            </div>
                         </div>
                     </div>
                     <!-- 登出按鈕 -->

@@ -348,7 +348,18 @@ class MJ999System {
 
             const userAvatar = document.getElementById('user-avatar');
             if (userAvatar) {
-                userAvatar.src = this.currentUser.pictureUrl || 'https://via.placeholder.com/80';
+                userAvatar.src = this.currentUser.pictureUrl || 'https://via.placeholder.com/100';
+            }
+            
+            // 更新 MJ999 風格的額外資訊
+            const userFriends = document.getElementById('user-friends');
+            if (userFriends && this.currentUser.friends) {
+                userFriends.textContent = this.currentUser.friends;
+            }
+            
+            const userStatusMsg = document.getElementById('user-status-msg');
+            if (userStatusMsg && this.currentUser.statusMessage) {
+                userStatusMsg.textContent = this.currentUser.statusMessage;
             }
             
             // 更新登出按鈕的用戶資訊

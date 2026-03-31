@@ -94,12 +94,23 @@
                 setTimeout(() => {
                     console.log('Creating mock user data...');
                     
-                    // 創建模擬用戶資料
+                    // 創建模擬用戶資料 - 使用更真實的 LINE 用戶格式
+                    const lineNames = [
+                        '王小明', '李美華', '陳志強', '林雅婷', '張偉倫',
+                        '陳淑芬', '劉德華', '張曼玉', '周潤發', '梁朝偉',
+                        '林志玲', '蔡依林', '周杰倫', '王力宏', '林俊傑'
+                    ];
+                    
+                    const randomName = lineNames[Math.floor(Math.random() * lineNames.length)];
+                    const randomSuffix = Math.floor(Math.random() * 999);
+                    
                     const mockUserData = {
-                        userId: 'U' + Math.random().toString(36).substr(2, 9),
-                        displayName: 'LINE 用戶 ' + Math.floor(Math.random() * 1000),
-                        pictureUrl: 'https://via.placeholder.com/80',
-                        email: 'user' + Math.floor(Math.random() * 1000) + '@line.me'
+                        userId: 'U' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                        displayName: randomName + (randomSuffix > 100 ? randomSuffix : ''),
+                        pictureUrl: `https://i.pravatar.cc/80?u=${Math.random().toString(36).substr(2, 9)}`,
+                        email: `line${randomSuffix}@user.me`,
+                        statusMessage: '今天天氣真好！',
+                        friends: Math.floor(Math.random() * 500) + 50
                     };
                     
                     console.log('Mock user data created:', mockUserData);
