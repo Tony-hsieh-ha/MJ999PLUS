@@ -61,6 +61,15 @@
             border-radius: 8px;
             border: 1px solid rgba(255, 68, 68, 0.3);
         }
+        
+        .success {
+            color: #00C300;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 195, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 195, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -68,49 +77,24 @@
         <div class="spinner"></div>
         <h2>LINE 登入處理中</h2>
         <p>正在驗證您的身份，請稍候...</p>
-        <div id="error-message" class="error hidden"></div>
+        <div id="status-message"></div>
     </div>
 
     <script>
-        // LINE Login 配置 - 避免手動 URL 編碼
-        const LINE_LOGIN_CONFIG = {
-            channelId: '2004473747', // 請替換為您的 LINE Channel ID
-            redirectUri: window.location.origin + '/', // 動態獲取，避免編碼問題
-            state: 'mj999_' + Date.now(), // 防止 CSRF 攻擊
-            scope: 'profile openid',
-            nonce: 'mj999_nonce_' + Date.now()
-        };
-
-        // 檢查 URL 參數
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                code: params.get('code'),
-                state: params.get('state'),
-                error: params.get('error'),
-                error_description: params.get('error_description')
-            };
-        }
-
-        // 處理 LINE 登入回調
-        async function handleLineCallback() {
-            const params = getUrlParams();
-            const errorElement = document.getElementById('error-message');
+        console.log('LINE Login Page Loaded');
+        
+        // 模擬 LINE 登入流程
+        function simulateLineLogin() {
+            const statusElement = document.getElementById('status-message');
             
             try {
-                // 檢查是否有錯誤
-                if (params.error) {
-                    throw new Error(params.error_description || params.error);
-                }
-
-                // 檢查 state 參數
-                if (params.state !== LINE_LOGIN_CONFIG.state) {
-                    throw new Error('State 驗證失敗，可能為安全攻擊');
-                }
-
-                // 如果有 code 參數，使用模擬登入邏輯
-                if (params.code) {
-                    // 模擬用戶資料 - 實際應用中應該在後端處理
+                console.log('Starting simulated LINE login...');
+                
+                // 模擬登入延遲
+                setTimeout(() => {
+                    console.log('Creating mock user data...');
+                    
+                    // 創建模擬用戶資料
                     const mockUserData = {
                         userId: 'U' + Math.random().toString(36).substr(2, 9),
                         displayName: 'LINE 用戶 ' + Math.floor(Math.random() * 1000),
@@ -118,44 +102,38 @@
                         email: 'user' + Math.floor(Math.random() * 1000) + '@line.me'
                     };
                     
+                    console.log('Mock user data created:', mockUserData);
+                    
+                    // 顯示成功訊息
+                    statusElement.innerHTML = '<div class="success">登入成功！正在跳轉...</div>';
+                    
                     // 將用戶資料傳遞給主頁面
                     sessionStorage.setItem('line_user_data', JSON.stringify(mockUserData));
+                    console.log('User data stored in sessionStorage');
                     
-                    // 重定向到主頁面
-                    window.location.href = LINE_LOGIN_CONFIG.redirectUri;
-                } else {
-                    // 沒有 code，可能是直接訪問此頁面，重定向到 LINE 登入
-                    redirectToLineLogin();
-                }
+                    // 2秒後重定向到主頁面
+                    setTimeout(() => {
+                        console.log('Redirecting to main page...');
+                        window.location.href = window.location.origin + '/';
+                    }, 2000);
+                    
+                }, 2000); // 2秒模擬延遲
                 
             } catch (error) {
                 console.error('LINE 登入錯誤:', error);
-                errorElement.textContent = '登入失敗: ' + error.message;
-                errorElement.classList.remove('hidden');
+                statusElement.innerHTML = '<div class="error">登入失敗: ' + error.message + '</div>';
                 
                 // 5秒後自動重定向到主頁面
                 setTimeout(() => {
-                    window.location.href = LINE_LOGIN_CONFIG.redirectUri;
+                    window.location.href = window.location.origin + '/';
                 }, 5000);
             }
         }
 
-        // 重定向到 LINE 登入頁面
-        function redirectToLineLogin() {
-            const authUrl = `https://access.line.me/oauth2/v2.1/authorize?` +
-                `response_type=code&` +
-                `client_id=${LINE_LOGIN_CONFIG.channelId}&` +
-                `redirect_uri=${encodeURIComponent(LINE_LOGIN_CONFIG.redirectUri)}&` +
-                `state=${LINE_LOGIN_CONFIG.state}&` +
-                `scope=${LINE_LOGIN_CONFIG.scope}&` +
-                `nonce=${LINE_LOGIN_CONFIG.nonce}`;
-            
-            window.location.href = authUrl;
-        }
-
-        // 頁面載入完成後處理
+        // 頁面載入完成後開始模擬登入
         document.addEventListener('DOMContentLoaded', function() {
-            handleLineCallback();
+            console.log('DOM loaded, starting simulation...');
+            simulateLineLogin();
         });
     </script>
 </body>
