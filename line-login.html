@@ -135,12 +135,15 @@
         
         // LINE Login 配置
         const LINE_LOGIN_CONFIG = {
-            // 請替換為您的實際 Channel ID
-            channelId: '2004473747', // 您的 LINE Channel ID
-            redirectUri: window.location.origin + '/',
+            // 您的正確 Channel ID
+            channelId: '2009653134', // 您的 LINE Channel ID
+            // 修正 redirectUri，確保指向正確的登入頁面
+            redirectUri: window.location.origin + '/line-login.html',
             state: 'mj999_' + Date.now(),
             scope: 'profile openid email',
-            nonce: 'mj999_nonce_' + Date.now()
+            nonce: 'mj999_nonce_' + Date.now(),
+            // Channel Secret (僅供參考，前端不使用)
+            channelSecret: 'c0cf92398cab27e13a8402501489ff0e'
         };
 
         // 檢查 URL 參數
@@ -310,7 +313,7 @@
                 return;
             }
             
-            // 檢查是否為開發環境或本地環境
+            // 檢查是否為開發環境
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 console.log('Local environment detected, using simulated login');
                 showSuccess('本地環境，使用模擬登入...');
@@ -326,17 +329,19 @@
                 `redirect_uri=${encodeURIComponent(LINE_LOGIN_CONFIG.redirectUri)}&` +
                 `state=${LINE_LOGIN_CONFIG.state}&` +
                 `scope=${LINE_LOGIN_CONFIG.scope}&` +
-                `nonce=${LINE_LOGIN_CONFIG.nonce}&` +
-                `bot_prompt=aggressive`;
+                `nonce=${LINE_LOGIN_CONFIG.nonce}`;
             
-            // 設定超時，如果 LINE Login 失敗就自動切換
+            console.log('LINE Auth URL:', authUrl);
+            console.log('Redirect URI:', LINE_LOGIN_CONFIG.redirectUri);
+            
+            // 設定超時保護
             setTimeout(() => {
                 console.log('LINE Login timeout, switching to simulated mode');
                 showSuccess('LINE 登入超時，自動切換到模擬模式...');
                 setTimeout(() => {
                     simulateLineLogin();
                 }, 1500);
-            }, 10000); // 10秒超時
+            }, 15000); // 15秒超時
             
             window.location.href = authUrl;
         }
