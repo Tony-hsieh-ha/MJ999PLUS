@@ -216,26 +216,90 @@
         // 處理 LINE 授權碼
         async function processLineCode(code) {
             try {
-                // 實際應用中，您需要將這個 code 發送到您的後端伺服器
-                // 後端會用 code 向 LINE API 換取 access token 和用戶資料
+                console.log('Processing LINE code:', code);
                 
-                // 這裡先模擬後端回應
-                const response = await fetch('/api/line-auth', {
+                // 先嘗試後端 API
+                try {
+                    const response = await fetch('/api/line-auth', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            code: code,
+                            redirectUri: LINE_LOGIN_CONFIG.redirectUri
+                        })
+                    });
+
+                    if (response.ok) {
+                        const userData = await response.json();
+                        console.log('Backend auth success:', userData);
+                        
+                        // 儲存用戶資料
+                        sessionStorage.setItem('line_user_data', JSON.stringify(userData));
+                        
+                        showSuccess('登入成功！正在跳轉...');
+                        
+                        // 2秒後跳轉到主頁面
+                        setTimeout(() => {
+                            window.location.href = window.location.origin + '/';
+                        }, 2000);
+                        
+                        return;
+                    }
+                } catch (backendError) {
+                    console.log('Backend not available, using frontend fallback:', backendError);
+                }
+                
+                // 後端不可用，使用前端直接處理（僅用於開發測試）
+                console.log('Using frontend LINE token exchange...');
+                showSuccess('正在獲取用戶資料...');
+                
+                // 直接用前端獲取 token（注意：這僅適用於開發測試）
+                const tokenResponse = await fetch('https://api.line.me/oauth2/v2.1/token', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: JSON.stringify({
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
                         code: code,
-                        redirectUri: LINE_LOGIN_CONFIG.redirectUri
+                        redirect_uri: LINE_LOGIN_CONFIG.redirectUri,
+                        client_id: LINE_LOGIN_CONFIG.channelId,
+                        client_secret: LINE_LOGIN_CONFIG.channelSecret,
                     })
                 });
-
-                if (!response.ok) {
-                    throw new Error('認證失敗');
+                
+                if (!tokenResponse.ok) {
+                    throw new Error('Token exchange failed: ' + tokenResponse.statusText);
                 }
-
-                const userData = await response.json();
+                
+                const tokenData = await tokenResponse.json();
+                console.log('Token received:', tokenData);
+                
+                // 獲取用戶資料
+                const profileResponse = await fetch('https://api.line.me/v2/profile', {
+                    headers: {
+                        Authorization: `Bearer ${tokenData.access_token}`
+                    }
+                });
+                
+                if (!profileResponse.ok) {
+                    throw new Error('Profile fetch failed: ' + profileResponse.statusText);
+                }
+                
+                const profileData = await profileResponse.json();
+                console.log('Profile received:', profileData);
+                
+                // 格式化用戶資料
+                const userData = {
+                    userId: profileData.userId,
+                    displayName: profileData.displayName,
+                    pictureUrl: profileData.pictureUrl,
+                    email: profileData.email || null,
+                    statusMessage: profileData.statusMessage || '今天天氣真好！',
+                    friends: Math.floor(Math.random() * 500) + 50 // 模擬好友數
+                };
                 
                 // 儲存用戶資料
                 sessionStorage.setItem('line_user_data', JSON.stringify(userData));
@@ -244,18 +308,25 @@
                 
                 // 2秒後跳轉到主頁面
                 setTimeout(() => {
-                    window.location.href = LINE_LOGIN_CONFIG.redirectUri;
+                    window.location.href = window.location.origin + '/';
                 }, 2000);
                 
             } catch (error) {
                 console.error('處理 LINE code 錯誤:', error);
                 
-                // 如果後端不可用，自動切換到模擬模式
-                showSuccess('LINE 服務暫時不可用，使用模擬登入...');
+                // 如果所有方法都失敗，顯示具體錯誤並提供模擬選項
+                showError('LINE 登入失敗: ' + error.message + '，點擊下方按鈕使用模擬登入');
                 
+                // 顯示模擬登入按鈕
                 setTimeout(() => {
-                    simulateLineLogin();
-                }, 1500);
+                    const statusElement = document.getElementById('status-message');
+                    statusElement.innerHTML += `
+                        <br><br>
+                        <button onclick="simulateLineLogin()" style="background: #00C300; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                            使用模擬登入
+                        </button>
+                    `;
+                }, 1000);
             }
         }
 
