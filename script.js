@@ -159,6 +159,18 @@ class MJ999System {
                 console.warn('initEventListeners(): 找不到登入按鈕');
             }
 
+            // 登出按鈕
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    console.log('initEventListeners(): 登出按鈕被點擊');
+                    this.handleLogout();
+                });
+                console.log('initEventListeners(): 登出按鈕事件綁定完成');
+            } else {
+                console.warn('initEventListeners(): 找不到登出按鈕');
+            }
+
             // 報名按鈕
             const registerBtns = document.querySelectorAll('.btn-register');
             console.log('initEventListeners(): 找到報名按鈕數量:', registerBtns.length);
@@ -209,6 +221,76 @@ class MJ999System {
         const lineLoginUrl = 'line-login.html';
         console.log('redirectToLineLogin(): 重定向到', lineLoginUrl);
         window.location.href = lineLoginUrl;
+    }
+
+    // 處理登出
+    handleLogout() {
+        console.log('handleLogout() Start');
+        
+        try {
+            // 清除用戶資料
+            this.currentUser = null;
+            this.isAdmin = false;
+            
+            // 清除本地儲存
+            localStorage.removeItem('currentUser');
+            sessionStorage.removeItem('line_user_data');
+            
+            console.log('handleLogout(): 用戶資料已清除');
+            
+            // 顯示登入畫面
+            this.showLoginView();
+            
+            // 顯示登出成功訊息
+            this.showMessage('已成功登出', 'success');
+            
+            console.log('handleLogout(): 登出完成');
+        } catch (error) {
+            console.error('handleLogout() Error:', error);
+            this.showMessage('登出失敗: ' + error.message, 'error');
+        }
+    }
+
+    // 顯示登入畫面
+    showLoginView() {
+        console.log('showLoginView() Start');
+        
+        try {
+            // 隱載入動畫
+            this.showLoading(false);
+            
+            // 顯示登入區域
+            const loginSection = document.getElementById('login-section');
+            if (loginSection) {
+                loginSection.classList.remove('hidden');
+                loginSection.classList.add('visible');
+            }
+            
+            // 隱藏用戶區域
+            const userSection = document.getElementById('user-section');
+            if (userSection) {
+                userSection.classList.add('hidden');
+                userSection.classList.remove('visible');
+            }
+            
+            // 隱藏報名區域
+            const registrationSection = document.getElementById('registration-section');
+            if (registrationSection) {
+                registrationSection.classList.add('hidden');
+                registrationSection.classList.remove('visible');
+            }
+            
+            // 隱藏管理員區域
+            const adminSection = document.getElementById('admin-section');
+            if (adminSection) {
+                adminSection.classList.add('hidden');
+                adminSection.classList.remove('visible');
+            }
+            
+            console.log('showLoginView(): 登入畫面顯示完成');
+        } catch (error) {
+            console.error('showLoginView() Error:', error);
+        }
     }
 
     // 設置當前用戶
@@ -267,6 +349,17 @@ class MJ999System {
             const userAvatar = document.getElementById('user-avatar');
             if (userAvatar) {
                 userAvatar.src = this.currentUser.pictureUrl || 'https://via.placeholder.com/80';
+            }
+            
+            // 更新登出按鈕的用戶資訊
+            const logoutAvatar = document.getElementById('logout-avatar');
+            if (logoutAvatar) {
+                logoutAvatar.src = this.currentUser.pictureUrl || 'https://via.placeholder.com/30';
+            }
+            
+            const logoutName = document.getElementById('logout-name');
+            if (logoutName) {
+                logoutName.textContent = this.currentUser.displayName;
             }
             
             console.log('updateUserDisplay(): 用戶資訊顯示完成');
