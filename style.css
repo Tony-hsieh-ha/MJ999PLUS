@@ -65,6 +65,24 @@ body {
     display: none;
 }
 
+/* 強制顯示登入區域 */
+#login-section {
+    display: block !important;
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    z-index: 9999 !important;
+    position: relative !important;
+}
+
+/* 強制顯示登入按鈕 */
+#line-login-btn {
+    display: inline-flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 9999 !important;
+    position: relative !important;
+}
+
 /* Card 樣式 */
 .login-card,
 .user-card,
